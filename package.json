@@ -1,0 +1,34 @@
+{
+  "name": "bus-way",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Single-bus pickup route simulator with an inspectable Dijkstra + Held-Karp solver",
+  "scripts": {
+    "build:graph": "tsx scripts/build-graph.ts",
+    "dev": "npm run build:graph && vite",
+    "build": "npm run build:graph && tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "pretest": "npm run build:graph",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify:pairs": "tsx scripts/export-reference-pairs.ts /tmp/busway-reference-pairs.json"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-leaflet": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  }
+}
