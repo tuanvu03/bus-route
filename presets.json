@@ -1,0 +1,210 @@
+{
+  "generatedBy": "scripts/find-presets.ts",
+  "generatedAt": "2026-11-27T11:21:48.218Z",
+  "baseSeed": 20261127,
+  "search": {
+    "kValues": [
+      6,
+      8,
+      10,
+      12
+    ],
+    "trialsPerK": 320,
+    "candidates": 233,
+    "mergedByVertex": 54
+  },
+  "presets": [
+    {
+      "id": "easy",
+      "name": "Easy",
+      "description": "Stops lined up close to the start→campus axis; greedy already finds the optimal order.",
+      "seed": 3902874993,
+      "k": 6,
+      "index": 99,
+      "stopIds": [
+        "node/357875693",
+        "node/357866442",
+        "node/357864581",
+        "node/357869874",
+        "node/12282022871",
+        "node/357862249"
+      ],
+      "passengers": 1,
+      "greedyDistance": 5899.727,
+      "optimalDistance": 5899.727,
+      "gapMeters": 0,
+      "gapPct": 0,
+      "algorithm": "exact",
+      "metrics": {
+        "lateralSpread": 1042.05,
+        "bothSides": false,
+        "firstDetourRatio": 0.918,
+        "lastStopToDestination": 1777.274
+      }
+    },
+    {
+      "id": "opposite-sides",
+      "name": "Opposite sides",
+      "description": "Stops spread on both sides of the start→campus axis, so the best order is less obvious.",
+      "seed": 56003528,
+      "k": 6,
+      "index": 249,
+      "stopIds": [
+        "node/357832433",
+        "node/357862388",
+        "node/357862238",
+        "node/357875702",
+        "node/357861859",
+        "node/357875304"
+      ],
+      "passengers": 1,
+      "greedyDistance": 13515.432,
+      "optimalDistance": 13515.432,
+      "gapMeters": 0,
+      "gapPct": 0,
+      "algorithm": "exact",
+      "metrics": {
+        "lateralSpread": 4077.6,
+        "bothSides": true,
+        "firstDetourRatio": 1.121,
+        "lastStopToDestination": 3177.745
+      }
+    },
+    {
+      "id": "one-way-trap",
+      "name": "One-way trap",
+      "description": "The nearest stop by road still creates a costly detour because of one-way streets.",
+      "seed": 429749302,
+      "k": 12,
+      "index": 308,
+      "stopIds": [
+        "node/357861064",
+        "node/357866999",
+        "node/13830228156",
+        "node/357826299",
+        "node/357829499",
+        "node/357871309",
+        "node/12232206883",
+        "node/12152864468",
+        "node/13026683284",
+        "node/357861210",
+        "node/357864447",
+        "node/357826331"
+      ],
+      "passengers": 1,
+      "greedyDistance": 19122.121,
+      "optimalDistance": 13142.791,
+      "gapMeters": 5979.329,
+      "gapPct": 45.495,
+      "algorithm": "exact",
+      "metrics": {
+        "lateralSpread": 2218.756,
+        "bothSides": true,
+        "firstDetourRatio": 1.387,
+        "lastStopToDestination": 3329.234
+      }
+    },
+    {
+      "id": "far-from-campus-first",
+      "name": "Far from campus first",
+      "description": "Greedy picks nearby stops first and leaves a far stop that forces a long final backtrack.",
+      "seed": 1646740912,
+      "k": 12,
+      "index": 248,
+      "stopIds": [
+        "node/357862388",
+        "node/11640424357",
+        "node/11633697972",
+        "node/357831471",
+        "node/357831418",
+        "node/357875717",
+        "node/357826898",
+        "node/357875796",
+        "node/357866352",
+        "node/357826623",
+        "node/357862211",
+        "node/357936198"
+      ],
+      "passengers": 1,
+      "greedyDistance": 19557.721,
+      "optimalDistance": 13531.693,
+      "gapMeters": 6026.028,
+      "gapPct": 44.533,
+      "algorithm": "exact",
+      "metrics": {
+        "lateralSpread": 3365.645,
+        "bothSides": true,
+        "firstDetourRatio": 1.121,
+        "lastStopToDestination": 3669.985
+      }
+    },
+    {
+      "id": "worst-k8",
+      "name": "Worst found (k=8)",
+      "description": "Largest greedy gap found by the seeded k=8 search.",
+      "seed": 4104028152,
+      "k": 8,
+      "index": 55,
+      "stopIds": [
+        "node/357861828",
+        "node/11640424358",
+        "node/357867150",
+        "node/357871309",
+        "node/12152864465",
+        "node/357827461",
+        "node/357864485",
+        "node/11633697969"
+      ],
+      "passengers": 1,
+      "greedyDistance": 17283.587,
+      "optimalDistance": 11872.946,
+      "gapMeters": 5410.641,
+      "gapPct": 45.571,
+      "algorithm": "exact",
+      "metrics": {
+        "lateralSpread": 2062.057,
+        "bothSides": true,
+        "firstDetourRatio": 1.22,
+        "lastStopToDestination": 3442.233
+      }
+    },
+    {
+      "id": "worst-k12",
+      "name": "Worst found (k=12)",
+      "description": "Largest greedy gap found by the seeded k=12 search.",
+      "seed": 1646740912,
+      "k": 12,
+      "index": 248,
+      "stopIds": [
+        "node/357862388",
+        "node/11640424357",
+        "node/11633697972",
+        "node/357831471",
+        "node/357831418",
+        "node/357875717",
+        "node/357826898",
+        "node/357875796",
+        "node/357866352",
+        "node/357826623",
+        "node/357862211",
+        "node/357936198"
+      ],
+      "passengers": 1,
+      "greedyDistance": 19557.721,
+      "optimalDistance": 13531.693,
+      "gapMeters": 6026.028,
+      "gapPct": 44.533,
+      "algorithm": "exact",
+      "metrics": {
+        "lateralSpread": 3365.645,
+        "bothSides": true,
+        "firstDetourRatio": 1.121,
+        "lastStopToDestination": 3669.985
+      }
+    }
+  ],
+  "notes": [
+    "All presets were found by seeded search over the candidate stops; none were hand-picked.",
+    "measured gaps come from the same greedy and Held-Karp implementations used by the app."
+  ]
+}

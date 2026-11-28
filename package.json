@@ -12,7 +12,9 @@
     "pretest": "npm run build:graph",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify:pairs": "tsx scripts/export-reference-pairs.ts /tmp/busway-reference-pairs.json"
+    "verify:pairs": "tsx scripts/export-reference-pairs.ts /tmp/busway-reference-pairs.json",
+    "find-presets": "npm run build:graph && tsx scripts/find-presets.ts",
+    "benchmark:heldkarp": "npm run build:graph && tsx scripts/benchmark-heldkarp.ts"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

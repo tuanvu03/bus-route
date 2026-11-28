@@ -90,8 +90,101 @@ export function dijkstra(
   };
 }
 
+export interface DistanceResult {
+  source: VertexId;
+  dist: Float64Array;
+  prev: Int32Array;
+  settledCount: number;
+  relaxationCount: number;
+  updateCount: number;
+  /** True when every requested target was settled before the queue emptied. */
+  allTargetsSettled: boolean;
+}
+
+/**
+ * Distance-only Dijkstra used for the large pairwise matrix and the benchmark.
+ *
+ * Unlike `dijkstra`, this does not allocate a settlement log. When `targets`
+ * is supplied the search stops as soon as every target has been settled, which
+ * is the important saving when n stops only need n+1 source searches.
+ */
+export function dijkstraDistances(
+  adj: ReadonlyArray<ReadonlyArray<Edge>>,
+  vertexCount: number,
+  source: VertexId,
+  targets?: Iterable<VertexId>,
+): DistanceResult {
+  const dist = new Float64Array(vertexCount).fill(Infinity);
+  const prev = new Int32Array(vertexCount).fill(-1);
+  const settled = new Uint8Array(vertexCount);
+  const heap = new MinHeap();
+  const remaining = new Set<VertexId>();
+  const hasTargets = targets !== undefined;
+  if (hasTargets) {
+    for (const target of targets) if (target !== source) remaining.add(target);
+  }
+
+  dist[source] = 0;
+  heap.push(0, source);
+
+  let relaxationCount = 0;
+  let updateCount = 0;
+  let settledCount = 0;
+
+  while (!heap.isEmpty()) {
+    if (hasTargets && remaining.size === 0) break;
+    const top = heap.pop()!;
+    const u = top.value;
+    if (settled[u] || top.priority !== dist[u]) continue;
+    settled[u] = 1;
+    settledCount++;
+    remaining.delete(u);
+
+    for (const [v, weight] of adj[u]) {
+      if (settled[v]) continue;
+      const candidate = top.priority + weight;
+      if (candidate < dist[v]) {
+        dist[v] = candidate;
+        prev[v] = u;
+        heap.push(candidate, v);
+        updateCount++;
+      }
+      relaxationCount++;
+    }
+  }
+
+  return {
+    source,
+    dist,
+    prev,
+    settledCount,
+    relaxationCount,
+    updateCount,
+    allTargetsSettled: remaining.size === 0,
+  };
+}
+
+/** Build the reverse graph once for destination-reachability checks. */
+export function reverseAdjacency(
+  adj: ReadonlyArray<ReadonlyArray<Edge>>,
+  vertexCount: number,
+): Edge[][] {
+  const reverse: Edge[][] = Array.from({ length: vertexCount }, () => []);
+  for (let u = 0; u < adj.length; u++) {
+    for (const [v, weight] of adj[u]) reverse[v].push([u, weight]);
+  }
+  return reverse;
+}
+
+/** The subset of a search result needed to reconstruct a path. */
+export interface PathSource {
+  source: VertexId;
+  dist: Float64Array;
+  prev: Int32Array;
+}
+
 /** Walk `prev` from target back to source. Returns null when unreachable. */
-export function reconstructPath(result: DijkstraResult, target: VertexId): VertexId[] | null {
+export function reconstructPath(result: PathSource, target: VertexId): VertexId[] | null {
   if (!Number.isFinite(result.dist[target])) return null;
   const path: VertexId[] = [];
   let v = target;

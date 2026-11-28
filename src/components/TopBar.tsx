@@ -1,8 +1,25 @@
 import type { GraphMeta } from '../lib/types';
 import { fmtNumber } from '../lib/format';
+import type { AlgorithmMode } from '../lib/route';
 import { RouteIcon } from './Icons';
 
-export function TopBar({ meta }: { meta: GraphMeta }) {
+const MODE_LABEL: Record<AlgorithmMode, string> = {
+  greedy: 'Mode A · greedy',
+  'held-karp': 'Mode B · Held-Karp',
+  compare: 'Mode C · compare',
+};
+
+export function TopBar({
+  meta,
+  view,
+  onViewChange,
+  mode,
+}: {
+  meta: GraphMeta;
+  view: 'simulator' | 'benchmark';
+  onViewChange: (view: 'simulator' | 'benchmark') => void;
+  mode: AlgorithmMode;
+}) {
   return (
     <header className="topbar">
       <div className="brand">
@@ -14,6 +31,23 @@ export function TopBar({ meta }: { meta: GraphMeta }) {
           <p>SNUST pickup route lab</p>
         </div>
       </div>
+
+      <nav className="view-switch" aria-label="Application view">
+        <button
+          type="button"
+          className={view === 'simulator' ? 'active' : ''}
+          onClick={() => onViewChange('simulator')}
+        >
+          Simulator
+        </button>
+        <button
+          type="button"
+          className={view === 'benchmark' ? 'active' : ''}
+          onClick={() => onViewChange('benchmark')}
+        >
+          Benchmark
+        </button>
+      </nav>
 
       <div className="topbar-stats" aria-label="Graph statistics">
         <div className="stat">
@@ -37,7 +71,7 @@ export function TopBar({ meta }: { meta: GraphMeta }) {
       <div className="topbar-right">
         <span className="engine-badge">
           <span className="status-dot" />
-          Dijkstra · Held-Karp
+          {view === 'simulator' ? MODE_LABEL[mode] : 'Benchmark · seeded'}
         </span>
         <span className="source-badge">OSM · Nowon-gu</span>
       </div>

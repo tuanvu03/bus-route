@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo } from 'react';
+import { Fragment, memo, useEffect, useMemo } from 'react';
 import L from 'leaflet';
 import {
   CircleMarker,
@@ -13,7 +13,7 @@ import {
 import type { Feature, FeatureCollection, LineString } from 'geojson';
 import type { Coord, Graph, StopInfo } from '../lib/types';
 import { vertexCoord } from '../lib/types';
-import type { RoutePlan, SelectedStop } from '../lib/route';
+import type { AlgorithmMode, Comparison, RoutePlan, SelectedStop } from '../lib/route';
 import type { FrontierEntry, Relaxation } from '../lib/dijkstra';
 import { ArrowRightIcon, LayersIcon, TargetIcon } from './Icons';
 
@@ -28,10 +28,19 @@ export interface DijkstraMapView {
   stepCount: number;
 }
 
+type AnimMode = 'greedy' | 'optimal';
+
 interface MapViewProps {
   graph: Graph;
   selected: SelectedStop[];
   plan: RoutePlan | null;
+  greedyPlan: RoutePlan | null;
+  optimalPlan: RoutePlan | null;
+  comparison: Comparison | null;
+  mode: AlgorithmMode;
+  animMode: AnimMode;
+  routeVisibility: { greedy: boolean; optimal: boolean };
+  onToggleRoute: (target: 'greedy' | 'optimal') => void;
   dijkstra: DijkstraMapView | null;
   busCoord: Coord | null;
   busLegIndex: number;
@@ -322,6 +331,130 @@ const RouteLayers = memo(function RouteLayers({
   );
 });
 
+const MODE_COLORS = { greedy: '#d9682c', optimal: '#2563eb' } as const;
+
+const CompareRouteLayers = memo(function CompareRouteLayers({
+  graph,
+  plans,
+  visibility,
+  muted,
+}: {
+  graph: Graph;
+  plans: { key: 'greedy' | 'optimal'; plan: RoutePlan }[];
+  visibility: { greedy: boolean; optimal: boolean };
+  muted: boolean;
+}) {
+  return (
+    <>
+      {plans.map(({ key, plan }) => {
+        if (!visibility[key]) return null;
+        const color = MODE_COLORS[key];
+        return (
+          <Fragment key={key}>
+            <Polyline
+              positions={plan.geometry.coords.map(toLL)}
+              pathOptions={{
+                color: '#ffffff',
+                weight: muted ? 7 : 9,
+                opacity: muted ? 0.35 : 0.7,
+                lineCap: 'round',
+                lineJoin: 'round',
+                interactive: false,
+              }}
+            />
+            <Polyline
+              positions={plan.geometry.coords.map(toLL)}
+              pathOptions={{
+                color,
+                weight: muted ? 3.2 : 5,
+                opacity: muted ? 0.3 : 0.95,
+                lineCap: 'round',
+                lineJoin: 'round',
+                interactive: false,
+              }}
+            />
+          </Fragment>
+        );
+      })}
+    </>
+  );
+});
+
+const ComparisonHighlight = memo(function ComparisonHighlight({
+  graph,
+  comparison,
+  visibility,
+}: {
+  graph: Graph;
+  comparison: Comparison;
+  visibility: { greedy: boolean; optimal: boolean };
+}) {
+  const divergence = comparison.divergence;
+  if (!divergence) return null;
+  const greedyLeg = comparison.greedy.legs[divergence.legIndex];
+  const optimalLeg = comparison.optimal.legs[divergence.legIndex];
+  return (
+    <>
+      {visibility.greedy && greedyLeg && (
+        <Polyline
+          positions={greedyLeg.path.map((v) => toLL(vertexCoord(graph, v)))}
+          pathOptions={{
+            color: MODE_COLORS.greedy,
+            weight: 8,
+            opacity: 0.32,
+            lineCap: 'round',
+            dashArray: '5 5',
+            interactive: false,
+          }}
+        />
+      )}
+      {visibility.optimal && optimalLeg && (
+        <Polyline
+          positions={optimalLeg.path.map((v) => toLL(vertexCoord(graph, v)))}
+          pathOptions={{
+            color: MODE_COLORS.optimal,
+            weight: 8,
+            opacity: 0.32,
+            lineCap: 'round',
+            dashArray: '5 5',
+            interactive: false,
+          }}
+        />
+      )}
+      <CircleMarker
+        center={toLL(comparison.optimal.points[divergence.greedyTo].coord)}
+        radius={7}
+        pathOptions={{
+          color: MODE_COLORS.greedy,
+          weight: 2,
+          fillColor: '#ffffff',
+          fillOpacity: 0.45,
+        }}
+        interactive={false}
+      >
+        <Tooltip permanent direction="top" offset={[0, -6]} className="step-tooltip">
+          A · {comparison.optimal.points[divergence.greedyTo].name}
+        </Tooltip>
+      </CircleMarker>
+      <CircleMarker
+        center={toLL(comparison.optimal.points[divergence.optimalTo].coord)}
+        radius={7}
+        pathOptions={{
+          color: MODE_COLORS.optimal,
+          weight: 2,
+          fillColor: '#ffffff',
+          fillOpacity: 0.45,
+        }}
+        interactive={false}
+      >
+        <Tooltip permanent direction="top" offset={[0, -6]} className="step-tooltip">
+          B · {comparison.optimal.points[divergence.optimalTo].name}
+        </Tooltip>
+      </CircleMarker>
+    </>
+  );
+});
+
 const DijkstraLayers = memo(function DijkstraLayers({
   graph,
   dijkstra,
@@ -436,6 +569,13 @@ export function MapView({
   graph,
   selected,
   plan,
+  greedyPlan,
+  optimalPlan,
+  comparison,
+  mode,
+  animMode,
+  routeVisibility,
+  onToggleRoute,
   dijkstra,
   busCoord,
   busLegIndex,
@@ -489,7 +629,10 @@ export function MapView({
     'pin-dest-icon',
     36,
   );
-  const busColor = plan?.legs[busLegIndex]?.color ?? '#161b22';
+  const busColor =
+    mode === 'compare'
+      ? MODE_COLORS[animMode]
+      : plan?.legs[busLegIndex]?.color ?? '#161b22';
   const busIcon = useDivIcon(
     `<div class="bus-pin" style="--bus-color:${busColor}">${BUS_SVG}</div>`,
     'bus-pin-icon',
@@ -544,8 +687,29 @@ export function MapView({
       {/* Snap connectors for the endpoints and selected stops. */}
       <SnapLayers graph={graph} selected={selected} />
 
-      {/* Full route, one colour per leg. */}
-      {plan && <RouteLayers graph={graph} plan={plan} muted={Boolean(dijkstra)} />}
+      {/* Full route. Compare mode draws both modes in distinct colours. */}
+      {mode === 'compare' && (greedyPlan || optimalPlan) ? (
+        <>
+          <CompareRouteLayers
+            graph={graph}
+            muted={Boolean(dijkstra)}
+            visibility={routeVisibility}
+            plans={[
+              ...(greedyPlan ? [{ key: 'greedy' as const, plan: greedyPlan }] : []),
+              ...(optimalPlan ? [{ key: 'optimal' as const, plan: optimalPlan }] : []),
+            ]}
+          />
+          {comparison && (
+            <ComparisonHighlight
+              graph={graph}
+              comparison={comparison}
+              visibility={routeVisibility}
+            />
+          )}
+        </>
+      ) : (
+        plan && <RouteLayers graph={graph} plan={plan} muted={Boolean(dijkstra)} />
+      )}
 
       <StopMarkers
         stops={graph.stops}

@@ -7,8 +7,9 @@ import {
   type RawGeoJSON,
 } from '../src/lib/buildGraph';
 import {
+  BUS_CAPACITY,
   DESTINATION_NODE_ID,
-  MAX_STOPS,
+  HELD_KARP_MAX_STOPS,
   MAX_STOP_SNAP_METERS,
   START_NODE_ID,
 } from '../src/config';
@@ -57,7 +58,8 @@ describe('graph construction', () => {
     expect(graph.meta.startSnapMeters).toBeCloseTo(2.8, 1);
     expect(graph.meta.destinationSnapMeters).toBeCloseTo(164.8, 1);
     expect(graph.stops.length).toBeLessThanOrEqual(294);
-    expect(MAX_STOPS).toBe(9);
+    expect(HELD_KARP_MAX_STOPS).toBe(15);
+    expect(BUS_CAPACITY).toBe(20);
     expect(new Set(graph.stops.map((s) => s.id)).size).toBe(graph.stops.length);
   });
 

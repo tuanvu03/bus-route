@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { dijkstra, frontierAtStep, reconstructPath } from '../src/lib/dijkstra';
+import {
+  dijkstra,
+  dijkstraDistances,
+  frontierAtStep,
+  reconstructPath,
+  reverseAdjacency,
+} from '../src/lib/dijkstra';
 import type { Edge } from '../src/lib/types';
 import { loadGraphFromDisk, referenceShortestPaths, rng } from './helpers';
 
@@ -99,6 +105,30 @@ describe('Dijkstra on directed graphs', () => {
       }
     }
     expect(cache.size).toBeGreaterThan(0);
+  });
+
+  it('distance-only search agrees with the logged search and reverse graph', () => {
+    const graph = loadGraphFromDisk();
+    const n = graph.coords.length / 2;
+    const full = dijkstraDistances(graph.adj, n, graph.start.vertex);
+    const logged = dijkstra(graph.adj, n, graph.start.vertex);
+    for (let v = 0; v < n; v++) {
+      expect(full.dist[v]).toBeCloseTo(logged.dist[v], 6);
+    }
+    expect(full.settledCount).toBe(logged.settledCount);
+
+    const reverse = reverseAdjacency(graph.adj, n);
+    const targets = new Set([graph.destination.vertex]);
+    const early = dijkstraDistances(graph.adj, n, graph.start.vertex, targets);
+    expect(early.dist[graph.destination.vertex]).toBeCloseTo(
+      full.dist[graph.destination.vertex],
+      6,
+    );
+    const back = dijkstraDistances(reverse, n, graph.destination.vertex, new Set([graph.start.vertex]));
+    expect(back.dist[graph.start.vertex]).toBeCloseTo(
+      full.dist[graph.destination.vertex],
+      6,
+    );
   });
 
   it('produces a monotone, replayable settlement log', () => {

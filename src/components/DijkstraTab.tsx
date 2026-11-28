@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Graph } from '../lib/types';
 import { vertexCoord, vertexCount } from '../lib/types';
 import type { RoutePlan } from '../lib/route';
-import { frontierAtStep, reconstructPath } from '../lib/dijkstra';
+import { frontierAtStep, reconstructPath, type DijkstraResult } from '../lib/dijkstra';
 import { pointLabel } from '../lib/labels';
 import { fmtMeters, fmtNumber } from '../lib/format';
 import {
@@ -20,6 +20,11 @@ import {
 interface DijkstraTabProps {
   graph: Graph;
   plan: RoutePlan | null;
+  /** All route variants currently available (greedy and/or optimal). */
+  plans: RoutePlan[];
+  /** Lazily computed log for the selected leg, or null while it is loading. */
+  run: DijkstraResult | null;
+  loading: boolean;
   leg: [number, number] | null;
   step: number;
   onLegChange: (from: number, to: number) => void;
@@ -31,6 +36,9 @@ const PAGE_SIZES = [25, 50, 100];
 export function DijkstraTab({
   graph,
   plan,
+  plans,
+  run,
+  loading,
   leg,
   step,
   onLegChange,
@@ -43,7 +51,25 @@ export function DijkstraTab({
   const [playing, setPlaying] = useState(false);
   const [rate, setRate] = useState(20);
 
-  const run = plan && leg ? plan.runs[leg[0]] ?? null : null;
+  const routeLegs = useMemo(() => {
+    const map = new Map<string, { from: number; to: number; distance: number; color: string; algorithm: string }>();
+    for (const variant of plans) {
+      for (const item of variant.legs) {
+        const key = `${item.from}-${item.to}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            from: item.from,
+            to: item.to,
+            distance: item.distance,
+            color: item.color,
+            algorithm: variant.algorithmLabel,
+          });
+        }
+      }
+    }
+    return [...map.values()];
+  }, [plans]);
+
   const targetIndex = leg ? leg[1] : null;
   const target = plan && targetIndex !== null ? plan.points[targetIndex] : null;
   const maxStep = run ? run.steps.length : 0;
@@ -124,15 +150,15 @@ export function DijkstraTab({
     );
   }
 
-  if (!leg || !run || !target) {
+  if (!leg || !target) {
     return (
       <div className="dijkstra-tab">
         <div className="empty-panel">
           <span className="empty-panel-icon">D</span>
           <h3>Choose a leg</h3>
-          <p>Select a leg below to open its Dijkstra log.</p>
+          <p>Select any leg from either mode to compute its Dijkstra log lazily.</p>
           <div className="leg-chips">
-            {plan.legs.map((l, i) => (
+            {routeLegs.map((l, i) => (
               <button
                 key={i}
                 type="button"
@@ -141,6 +167,7 @@ export function DijkstraTab({
               >
                 <i style={{ background: l.color }} />
                 {pointLabel(l.from, plan.points.length)} → {pointLabel(l.to, plan.points.length)}
+                <em>{l.algorithm}</em>
               </button>
             ))}
           </div>
@@ -149,8 +176,27 @@ export function DijkstraTab({
     );
   }
 
+  if (loading || !run) {
+    return (
+      <div className="dijkstra-tab">
+        <div className="empty-panel">
+          <span className="empty-panel-icon">D</span>
+          <h3>Computing Dijkstra log…</h3>
+          <p>
+            Only the leg you inspect is logged. This keeps memory bounded for large stop sets.
+          </p>
+          <div className="solve-progress">
+            <div className="solve-progress-track">
+              <span className="indeterminate" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const n = plan.points.length;
-  const activeLeg = plan.legs.findIndex((l) => l.from === leg[0] && l.to === leg[1]);
+  const activeLeg = routeLegs.findIndex((l) => l.from === leg[0] && l.to === leg[1]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, pageCount - 1);
   const pageRows = filtered.slice(safePage * pageSize, (safePage + 1) * pageSize);
@@ -197,7 +243,7 @@ export function DijkstraTab({
 
       <div className="leg-picker">
         <div className="leg-chips route-chips">
-          {plan.legs.map((l, i) => {
+          {routeLegs.map((l, i) => {
             const active = l.from === leg[0] && l.to === leg[1];
             return (
               <button
@@ -205,7 +251,7 @@ export function DijkstraTab({
                 key={i}
                 className={`leg-chip ${active ? 'active' : ''}`}
                 onClick={() => onLegChange(l.from, l.to)}
-                title={`${plan.points[l.from].name} → ${plan.points[l.to].name}`}
+                title={`${plan.points[l.from].name} → ${plan.points[l.to].name} (${l.algorithm})`}
               >
                 <i style={{ background: l.color }} />
                 {pointLabel(l.from, n)} → {pointLabel(l.to, n)}

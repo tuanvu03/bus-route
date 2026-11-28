@@ -6,6 +6,7 @@ import { PauseIcon, PlayIcon, ResetIcon, SparkIcon } from './Icons';
 
 interface SimBarProps {
   plan: RoutePlan | null;
+  algorithmLabel: string | null;
   snapshot: SimulationSnapshot;
   speed: number;
   setSpeed: (speed: number) => void;
@@ -19,6 +20,7 @@ interface SimBarProps {
 
 export function SimBar({
   plan,
+  algorithmLabel,
   snapshot,
   speed,
   setSpeed,
@@ -68,7 +70,7 @@ export function SimBar({
   };
 
   const statusText = complete
-    ? `Complete · ${delivered} passengers delivered`
+    ? `Complete · ${delivered} passengers delivered · ${algorithmLabel ?? 'route'}`
     : pauseStop
       ? `Picking up ${pauseStop.passengers} · ${pauseStop.name}`
       : status === 'paused'
@@ -112,7 +114,11 @@ export function SimBar({
           className="sim-track"
           ref={trackRef}
           onPointerDown={(e) => {
-            e.currentTarget.setPointerCapture(e.pointerId);
+            try {
+              e.currentTarget.setPointerCapture(e.pointerId);
+            } catch {
+              // Synthetic pointer events (tests) may not have an active pointer.
+            }
             scrub(e.clientX);
           }}
           onPointerMove={(e) => {
@@ -149,6 +155,7 @@ export function SimBar({
           </span>
           <span>
             Leg {currentLegIndex + 1}/{plan.legs.length} · stop {legTarget}
+            {algorithmLabel ? ` · ${algorithmLabel}` : ''}
           </span>
         </div>
       </div>

@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# Convenience wrapper: ./scripts/find-presets [--build-graph]
+set -eu
+cd "$(dirname "$0")/.."
+if [ "${1:-}" = "--build-graph" ]; then
+  npm run build:graph
+fi
+exec npx tsx scripts/find-presets.ts
